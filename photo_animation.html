@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Happy 7 Year Anniversary!</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:wght@400;700&display=swap');
+
+        body { 
+            margin: 0; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            font-family: 'Playfair Display', serif; /* Elegant font */
+            text-align: center; 
+            overflow: hidden; 
+            background: linear-gradient(135deg, #2a0a2a, #0a2a2a); /* Soft gradient background */
+        }
+        canvas { 
+            display: block; 
+            box-shadow: 0 0 25px rgba(255,105,180,0.6); /* Pinkish glow */
+            border-radius: 10px;
+        }
+        #modal-overlay { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background-color: rgba(0, 0, 0, 0.85); /* Darker overlay */
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 1000; 
+        }
+        #modal-content { 
+            background-color: #1e1e1e; /* Darker, sophisticated modal */
+            padding: 40px 50px; 
+            border-radius: 15px; 
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7); 
+            text-align: center; 
+            color: #eee;
+            border: 1px solid #444;
+        }
+        #modal-content h2 { 
+            margin-top: 0; 
+            font-family: 'Great Vibes', cursive; /* Script font for heading */
+            font-size: 2.5em;
+            color: #ffb6c1; /* Light pink */
+            text-shadow: 0 0 10px rgba(255, 182, 193, 0.5);
+        }
+        #modal-content p {
+            font-size: 1.1em;
+            margin-bottom: 25px;
+        }
+        #file-upload-input { 
+            display: none; 
+        }
+        #upload-button { 
+            padding: 15px 35px; 
+            background-color: #ff69b4; /* Hot pink */
+            color: white; 
+            border: none; 
+            border-radius: 30px; 
+            cursor: pointer; 
+            font-size: 1.2em; 
+            font-weight: bold;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(255,105,180,0.4);
+        }
+        #upload-button:hover { 
+            background-color: #e04a9e; 
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(255,105,180,0.6);
+        }
+
+        /* --- Text Overlays --- */
+        #anniversary-text {
+            position: absolute;
+            top: 50%;
+            width: 100%;
+            text-align: center;
+            transform: translateY(-50%);
+            color: #ffb6c1; /* Soft pink */
+            font-family: 'Great Vibes', cursive;
+            font-size: 3.5em; /* Adjusted font size */
+            text-shadow: 0 0 20px rgba(255, 182, 193, 0.7);
+            opacity: 0; /* Starts hidden */
+            transition: opacity 2s ease-in-out, top 2s ease-in-out;
+            z-index: 500;
+            pointer-events: none; /* Allows clicks to pass through */
+        }
+        #anniversary-text.show {
+            opacity: 1;
+            top: 6%; /* Move further to the top */
+        }
+
+        #personal-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, 50%);
+            color: #ffffff; /* White */
+            font-family: 'Playfair Display', serif;
+            font-size: 2.0em;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            opacity: 0;
+            transition: opacity 2s ease-in-out 0.5s, top 2s ease-in-out 0.5s; /* Staggered transition */
+            z-index: 500;
+            pointer-events: none;
+        }
+        #personal-message.show {
+            opacity: 1;
+            top: 13%; /* Position below main text */
+        }
+
+        #closing-message {
+            position: absolute;
+            bottom: 5%;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #ffe0f0; /* Lighter pink */
+            font-family: 'Playfair Display', serif;
+            font-size: 1.2em;
+            text-shadow: 0 0 5px rgba(255, 224, 240, 0.5);
+            opacity: 0;
+            transition: opacity 2s ease-in-out;
+            z-index: 500;
+            pointer-events: none;
+        }
+        #closing-message.show {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    
+    <div id="modal-overlay">
+        <div id="modal-content">
+            <h2>Our Journey in Photos</h2>
+            <p>Upload your cherished memories to celebrate our 7 amazing years!</p>
+            <input type="file" id="file-upload-input" multiple accept="image/*">
+            <label for="file-upload-input" id="upload-button">Select Photos</label>
+        </div>
+    </div>
+
+    <div id="anniversary-text">
+        Happy <span style="font-size: 1.5em; color: #ffd1da;">7</span> Year Anniversary
+    </div>
+
+    <div id="personal-message">To my amazing wife, SHARON JESSICA!</div>
+    <div id="closing-message">With all my love, Your Man❤️</div>
+
+    <script>
+        let photos = [];
+        let particles = [];
+        let targetPoints = [];
+        let modalOverlay, fileInput;
+        const NUM_POINTS = 100; // Number of points to define the '7' shape
+        const PHOTO_SETTLE_TIME = 4000; // Time for photos to settle before text appears (ms)
+        const SPARKLE_COUNT = 50;
+        let sparkles = [];
+
+        // Flags to control animation states
+        let animationStarted = false;
+        let photosSettled = false;
+        let textShown = false;
+
+        // Class for the photo particles
+        class PhotoParticle {
+            constructor(img, target) {
+                this.img = img;
+                this.target = target;
+                this.pos = createVector(random(-width/2, width * 1.5), random(-height/2, height * 1.5));
+                this.vel = createVector();
+                this.maxSpeed = random(6, 12);
+                this.maxForce = random(0.1, 0.4);
+                this.rotation = random(TWO_PI); // Random initial rotation
+                this.targetRotation = 0; // Final rotation
+
+                // --- Aspect Ratio Correction ---
+                const baseSize = width / (photos.length > 50 ? 25 : 18);
+                if (img.width > img.height) { // Landscape
+                    this.targetWidth = baseSize;
+                    this.targetHeight = baseSize * (img.height / img.width);
+                } else { // Portrait or square
+                    this.targetHeight = baseSize;
+                    this.targetWidth = baseSize * (img.width / img.height);
+                }
+                this.currentWidth = random(10, 30);
+                this.currentHeight = this.currentWidth * (img.height / img.width);
+                this.alpha = 0; // Start completely transparent
+                this.settled = false; // Flag to check if photo has reached its target
+            }
+
+            arrive() {
+                let desired = p5.Vector.sub(this.target, this.pos);
+                let d = desired.mag();
+                
+                if (d < 5) { // Close enough to target
+                    this.pos = this.target.copy();
+                    this.vel.set(0, 0);
+                    this.settled = true;
+                    this.alpha = 255; // Fully opaque once settled
+                } else {
+                    let speed = this.maxSpeed;
+                    if (d < 100) { // Slow down as it approaches
+                        speed = map(d, 0, 100, 0, this.maxSpeed);
+                    }
+                    desired.setMag(speed);
+                    let steer = p5.Vector.sub(desired, this.vel);
+                    steer.limit(this.maxForce);
+                    this.vel.add(steer);
+                }
+            }
+            
+            update() {
+                this.arrive();
+                this.pos.add(this.vel);
+                
+                // Animate rotation and alpha
+                this.rotation = lerp(this.rotation, this.targetRotation, 0.05);
+                this.alpha = lerp(this.alpha, 255, 0.05); // Fade in
+                
+                // --- Aspect Ratio Correction ---
+                // Update target size based on current canvas width for responsiveness
+                const baseSize = width / (photos.length > 50 ? 25 : 18); 
+                if (this.img.width > this.img.height) { // Landscape
+                    this.targetWidth = baseSize;
+                    this.targetHeight = baseSize * (this.img.height / this.img.width);
+                } else { // Portrait or square
+                    this.targetHeight = baseSize;
+                    this.targetWidth = baseSize * (this.img.width / this.img.height);
+                }
+                // Animate size towards target
+                this.currentWidth = lerp(this.currentWidth, this.targetWidth, 0.08);
+                this.currentHeight = lerp(this.currentHeight, this.targetHeight, 0.08);
+            }
+
+            display() {
+                push(); // Isolate transformations for each image
+                translate(this.pos.x, this.pos.y);
+                rotate(this.rotation);
+                tint(255, this.alpha); // Apply fading
+                imageMode(CENTER);
+                image(this.img, 0, 0, this.currentWidth, this.currentHeight);
+                pop();
+            }
+        }
+
+        // Class for background sparkles
+        class Sparkle {
+            constructor() {
+                this.pos = createVector(random(width), random(height));
+                this.vel = createVector(random(-0.5, 0.5), random(-0.5, 0.5));
+                this.size = random(2, 5);
+                this.alpha = random(50, 200);
+                this.life = 255; // Fade out
+            }
+
+            update() {
+                this.pos.add(this.vel);
+                this.alpha -= 1; // Fade out
+                this.life -= 1;
+                if (this.life <= 0 || this.pos.x < 0 || this.pos.x > width || this.pos.y < 0 || this.pos.y > height) {
+                    this.reset(); // Reset when it fades out or goes off screen
+                }
+            }
+
+            reset() {
+                this.pos = createVector(random(width), random(height));
+                this.vel = createVector(random(-0.5, 0.5), random(-0.5, 0.5));
+                this.alpha = random(50, 200);
+                this.life = 255;
+            }
+
+            display() {
+                noStroke();
+                fill(255, 220, 240, this.alpha); // Soft pinkish white
+                ellipse(this.pos.x, this.pos.y, this.size);
+            }
+        }
+
+        function setup() {
+            let canvas = createCanvas(windowWidth, windowHeight);
+            canvas.parent(document.body);
+            
+            modalOverlay = document.getElementById('modal-overlay');
+            document.getElementById('file-upload-input').addEventListener('change', handleFiles);
+
+            calculateTargetPoints(); // Calculate points for the first time
+
+            // Initialize sparkles
+            for (let i = 0; i < SPARKLE_COUNT; i++) {
+                sparkles.push(new Sparkle());
+            }
+        }
+
+        // Calculates the '7' shape based on current canvas size
+        function calculateTargetPoints() {
+            targetPoints = []; // Clear previous points
+            const angle = radians(65); // The desired 65-degree angle
+            const sevenHeight = height * 0.55;
+            const diagonalWidth = sevenHeight / tan(angle); // Calculate width based on angle
+            
+            // Calculate the length of the diagonal stem
+            const diagonalLength = dist(0, 0, diagonalWidth, sevenHeight);
+            const topBarLength = diagonalLength * (3 / 4);
+            
+            const totalWidth = topBarLength; // The shape's width is defined by the top bar
+            const startX = (width - totalWidth) / 2;
+            const startY = height * 0.3; // Position it a bit higher
+            const numTopPoints = Math.floor(NUM_POINTS * 0.4); // 40% of points for the top bar
+            const numDiagonalPoints = NUM_POINTS - numTopPoints;
+            
+            // Top bar of the '7'
+            for (let i = 0; i < numTopPoints; i++) {
+                let x = map(i, 0, numTopPoints - 1, startX, startX + topBarLength);
+                targetPoints.push(createVector(x, startY));
+            }
+            
+            // Parabolic (inward curve) diagonal bar
+            const p0 = createVector(startX + topBarLength, startY); // Top-right
+            const p2 = createVector(startX + topBarLength - diagonalWidth, startY + sevenHeight); // Bottom-left
+            // Control point is placed to the left of the line between p0 and p2 to create an outward curve
+            const p1 = createVector((p0.x + p2.x) / 2 - diagonalWidth * 0.2, (p0.y + p2.y) / 2);
+            
+            for (let i = 0; i < numDiagonalPoints; i++) {
+                const t = i / (numDiagonalPoints - 1); // 0 to 1
+                const x = pow(1 - t, 2) * p0.x + 2 * (1 - t) * t * p1.x + pow(t, 2) * p2.x;
+                const y = pow(1 - t, 2) * p0.y + 2 * (1 - t) * t * p1.y + pow(t, 2) * p2.y;
+                targetPoints.push(createVector(x, y));
+            }
+        }
+        function draw() {
+            // Gradient background logic for animation
+            let c1 = color(42, 10, 42); // Darker purple
+            let c2 = color(10, 42, 42); // Darker teal
+            for(let y=0; y<height; y++){
+                let inter = map(y, 0, height, 0, 1);
+                let c = lerpColor(c1, c2, inter);
+                stroke(c);
+                line(0, y, width, y);
+            }
+
+            // Update and display sparkles
+            for (let sparkle of sparkles) {
+                sparkle.update();
+                sparkle.display();
+            }
+
+            let allPhotosSettled = true;
+            for (let particle of particles) {
+                particle.update();
+                particle.display();
+                if (!particle.settled) {
+                    allPhotosSettled = false;
+                }
+            }
+
+            // Check if photos have settled and show text
+            if (animationStarted && allPhotosSettled && !photosSettled) {
+                photosSettled = true;
+                setTimeout(() => {
+                    document.getElementById('anniversary-text').classList.add('show');
+                    document.getElementById('personal-message').classList.add('show');
+                    // Delay the closing message for a more dramatic effect
+                    setTimeout(() => {
+                        document.getElementById('closing-message').classList.add('show');
+                    }, 1500);
+                    textShown = true;
+                }, 500); // Small delay after photos settle
+            }
+
+            // Draw a subtle glowing outline of the '7' when photos are settled
+            if (photosSettled) {
+                drawSevenOutline();
+            }
+        }
+        
+        // Draws a subtle outline of the '7' shape
+        function drawSevenOutline() {
+            if (targetPoints.length === 0) return;
+
+            // Gradient for the glow
+            let glowColor1 = color(255, 182, 193, 100 + 50 * sin(frameCount * 0.05)); // Pulsing pink
+            let glowColor2 = color(255, 255, 255, 50 + 30 * sin(frameCount * 0.05)); // Pulsing white
+
+            noFill();
+            strokeWeight(3);
+            stroke(glowColor1);
+            
+            // Use quadraticVertex to draw the curve correctly
+            beginShape();
+            // Draw the entire shape by iterating through all points
+            if (targetPoints.length > 0) {
+                for (let i = 0; i < targetPoints.length; i++) {
+                    vertex(targetPoints[i].x, targetPoints[i].y);
+                }
+            }
+            endShape();
+
+            // A slightly bolder outline for visual clarity
+            stroke(255, 182, 193, 80); // Soft pink, less transparent
+            strokeWeight(1);
+            beginShape();
+            for (let i = 0; i < targetPoints.length; i++) {
+                vertex(targetPoints[i].x, targetPoints[i].y);
+            }
+            endShape();
+        }
+
+        function handleFiles(event) {
+            modalOverlay.style.display = 'none'; // Hide modal
+            animationStarted = true; // Set flag to indicate animation has begun
+
+            let files = event.target.files;
+            if (files.length === 0) return;
+
+            const maxPhotosToLoad = Math.min(files.length, NUM_POINTS * 2); 
+            let loadedCount = 0;
+            for (let i = 0; i < maxPhotosToLoad; i++) {
+                const fileIndex = i % files.length; // Cycle through uploaded files if fewer than needed
+                if (files[fileIndex].type.startsWith('image/')) {
+                    loadImage(URL.createObjectURL(files[fileIndex]), img => {
+                        photos.push(img);
+                        loadedCount++;
+                        if (loadedCount === maxPhotosToLoad) { // Only create particles once all selected images are loaded
+                             createParticles();
+                        }
+                    });
+                }
+            }
+        }
+
+        function createParticles() {
+            particles = [];
+            for (let i = 0; i < photos.length; i++) {
+                // Distribute photos evenly across all target points
+                const targetIndexFloat = (i / (photos.length - 1)) * (targetPoints.length - 1);
+                const targetIndex = Math.round(targetIndexFloat);
+                const target = targetPoints[targetIndex];
+                particles.push(new PhotoParticle(photos[i], target));
+            }
+        }
+
+        // Handles window resizing
+        function windowResized() {
+            resizeCanvas(windowWidth, windowHeight);
+            calculateTargetPoints(); // Recalculate the '7' shape for the new size
+            
+            // Update existing particles with new target locations and sizes
+            for (let i = 0; i < particles.length; i++) {
+                let targetIndex = i % targetPoints.length;
+                particles[i].target = targetPoints[targetIndex];
+            }
+        }
+    </script>
+</body>
+</html>
